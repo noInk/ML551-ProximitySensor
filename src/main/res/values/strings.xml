@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Proximity Sensor</string>
+    <string name="title">Proximity Sensor</string>
+    <string name="service">Start</string>
+    <string name="proximity_value">Not running</string>
+</resources>

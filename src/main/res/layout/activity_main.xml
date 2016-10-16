@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@color/main_background"
+    android:keepScreenOn="true"
+    tools:context="com.ml551.issue.ProximityMonitor">
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="46.0mm"
+            android:layout_height="82.5mm"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/proximity_status"
+                android:layout_width="200dip"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:padding="35.0dip"
+                android:text="@string/proximity_value"
+                android:textSize="11pt">
+            </TextView>
+
+            <Button
+                android:id="@+id/serviceButton"
+                android:layout_width="100dip"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/service">
+            </Button>
+
+        </LinearLayout>
+    </LinearLayout>
+
+
+</FrameLayout>
+
+
+
+
