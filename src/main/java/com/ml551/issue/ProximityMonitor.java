@@ -110,7 +110,7 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
 
     @Override
     protected void onStop() {
-        Log.i(TAG, Void.TYPE.getName());
+        
         if (running) {
             mSensorManager.unregisterListener(mSensorEventListener);
             running = false;
