@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Proximity Sensor</string>
-    <string name="title">Proximity Sensor</string>
-    <string name="service">Start</string>
-    <string name="proximity_value">Not running</string>
+    <string name="app_subname">ML551</string>
+    <string name="service_start">Start</string>
+    <string name="service_stop">Stop</string>
+    <string name="proximity_not_running">Not running</string>
+    <string name="proximity_waiting_data">Waiting data</string>
 </resources>

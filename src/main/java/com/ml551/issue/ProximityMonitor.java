@@ -5,7 +5,9 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -16,19 +18,24 @@ import android.widget.TextView;
 
 public class ProximityMonitor extends AppCompatActivity implements SensorEventListener, Runnable {
 
-    private static final String TAG  = ProximityMonitor.class.getSimpleName();
-    private static final long RETRY_INTERVAL_MILLIS = 2000L;
+    private static final String TAG = ProximityMonitor.class.getSimpleName();
+    private static final long RETRY_INTERVAL_MILLIS = 500L;
+    private static final String NEAR = "NEAR";
+    private static final String FAR = "FAR";
+    private static final String UNKNOWN = "UNKNOWN";
+    boolean running = false;
+    AsyncTask asyncTask;
+    boolean hasRun = false;
     private SensorManager mSensorManager;
     private Sensor mSensor;
     private SensorEventListener mSensorEventListener;
     private ThreadFlushMethod mFlushMethod;
     private Context mContext;
-    boolean running = false;
     private float mValue;
     private String mCurrentValue;
     private TextView mProximityStatus;
     private Button mButton;
-
+    private Handler uiHandler = new Handler();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -47,12 +54,9 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
             @Override
             public void flush(final long n) throws InterruptedException {
 
-                if (running) {
-                    mSensorManager.flush(mSensorEventListener);
-                    Log.i(TAG, " mFlushMethod flush " +mSensorEventListener);
 
+                asyncTask = new threadTask().execute();
 
-                }
 
             }
         };
@@ -65,13 +69,13 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
             public void onClick(View v) {
                 if (running) {
                     mSensorManager.unregisterListener(mSensorEventListener);
-                    setProximityStatus("Not running");
-                    mButton.setText("Start");
+                    setProximityStatus((mContext.getResources().getString(R.string.proximity_not_running)));
+                    mButton.setText((mContext.getResources().getString(R.string.service_start)));
 
                 } else {
                     mSensorManager.registerListener(mSensorEventListener, mSensor, SensorManager.SENSOR_DELAY_FASTEST);
-                    setProximityStatus("Waiting for data");
-                    mButton.setText("Stop");
+                    setProximityStatus((mContext.getResources().getString(R.string.proximity_waiting_data)));
+                    mButton.setText((mContext.getResources().getString(R.string.service_stop)));
 
                 }
                 running = !running;
@@ -96,12 +100,23 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
     public void onPause() {
         if (running) {
             mSensorManager.unregisterListener(mSensorEventListener);
-            setProximityStatus("Not running");
-            ((Button) findViewById(R.id.serviceButton)).setText("Start");
+            setProximityStatus(mContext.getResources().getString(R.string.proximity_not_running));
+            ((Button) findViewById(R.id.serviceButton)).setText((mContext.getResources().getString(R.string.service_start)));
 
             running = false;
         }
         super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        Log.i(TAG, Void.TYPE.getName());
+        if (running) {
+            mSensorManager.unregisterListener(mSensorEventListener);
+            running = false;
+        }
+        super.onStop();
+        uiHandler.removeCallbacksAndMessages(null);
     }
 
 
@@ -116,59 +131,30 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+        class Reference {};
+
+
         mValue = event.values[0];
-        Log.i(TAG, " onSensorChanged " + mValue);
+        Log.i(TAG, Reference.class.getEnclosingMethod().getName().toString() + " " + mValue);
 
-        mCurrentValue = mValue == 0.0 ? "NEAR" : mValue > 0 ? "FAR" : "UNKNOWN";
+        mCurrentValue = mValue == 0.0 ? NEAR : mValue > 0 ? FAR : UNKNOWN;
         setProximityStatus(mCurrentValue);
-        Log.i(TAG, " mCurrentValue " + mCurrentValue);
+        Log.i(TAG, Reference.class.getEnclosingMethod().getName().toString() + " " + mCurrentValue);
 
 
-        if (mCurrentValue == "NEAR") {
-            mSensorManager.unregisterListener(mSensorEventListener);
-            mSensorManager.registerListener(mSensorEventListener, mSensor, SensorManager.SENSOR_DELAY_FASTEST);
-            Log.i(TAG, " UNSTUCK SENSOR ");
+        if (mCurrentValue.equals(NEAR)) {
+            run();
         }
-
-
-        this.run();
-
 
     }
 
 
     @Override
     public void run() {
-
-        Log.i(TAG, " RUN " + mFlushMethod);
-        if (mFlushMethod == null) {
-            Log.i(TAG, " mFlushMethod IN");
-
-
+        if (mFlushMethod != null) {
             if (running) {
-                mSensorManager.flush(mSensorEventListener);
-                Log.i(TAG, "mSensorManager flush on run");
 
-
-            }
-
-
-            Log.w(TAG, " RETRY " + RETRY_INTERVAL_MILLIS);
-            this.flush(RETRY_INTERVAL_MILLIS);
-
-
-        } else {
-            if (running) {
-                mSensorManager.flush(mSensorEventListener);
-
-                if (mCurrentValue == "NEAR") {
-                    mSensorManager.flush(mSensorEventListener);
-                    Log.i(TAG, " mCurrentValue " + mCurrentValue);
-                }
-
-
-                Log.i(TAG, "ENDING");
-
+                flush(RETRY_INTERVAL_MILLIS);
 
             }
         }
@@ -187,6 +173,59 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
     interface ThreadFlushMethod {
         void flush(long paramLong)
                 throws InterruptedException;
+    }
+
+
+    public class threadTask extends AsyncTask<AppCompatActivity, Integer, Boolean> {
+
+
+        @Override
+        protected void onPreExecute() {
+            mSensorManager.flush(mSensorEventListener);
+
+            hasRun = true;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean bolean) {
+
+
+            hasRun = false;
+
+
+        }
+
+        protected Boolean doInBackground(AppCompatActivity... activities) {
+
+
+            try {
+
+                new Thread(new Runnable() {
+                    public void run() {
+
+
+                        uiHandler.post(new Runnable() {
+                            public void run() {
+
+                                ///////////////////////////////////////////////////////
+                                mSensorManager.unregisterListener(mSensorEventListener);
+                                Log.i(TAG, " UNSTUCK PROXIMITY SENSOR");
+                                mSensorManager.registerListener(mSensorEventListener, mSensor, SensorManager.SENSOR_DELAY_FASTEST);
+                                ///////////////////////////////////////////////////////
+
+
+                            }
+                        });
+                    }
+                }).start();
+            } catch (Exception e) {
+            }
+
+
+            return hasRun;
+        }
+
+
     }
 
 }

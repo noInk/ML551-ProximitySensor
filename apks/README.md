@@ -2,7 +2,7 @@
 
 ## Preparation
 
-Download and install [ProximitySensor-debug] on your device.
+Download and install [ML551-ProximitySensor-debug] on your device.
 
 
 ## Use

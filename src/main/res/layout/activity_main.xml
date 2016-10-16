@@ -28,7 +28,7 @@
                 android:layout_gravity="center"
                 android:gravity="center"
                 android:padding="35.0dip"
-                android:text="@string/proximity_value"
+                android:text="@string/proximity_not_running"
                 android:textSize="11pt">
             </TextView>
 
@@ -37,7 +37,7 @@
                 android:layout_width="100dip"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="@string/service">
+                android:text="@string/service_start">
             </Button>
 
         </LinearLayout>
