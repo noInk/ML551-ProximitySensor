@@ -16,8 +16,6 @@ import android.widget.Button;
 import android.widget.TextView;
 
 
-
-
 public class ProximityMonitor extends AppCompatActivity implements SensorEventListener, Runnable {
 
     private static final String TAG = ProximityMonitor.class.getSimpleName();
@@ -25,7 +23,12 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
     private static final String NEAR = "NEAR";
     private static final String FAR = "FAR";
     private static final String UNKNOWN = "UNKNOWN";
+    private static final String STRING_SPACE = " ";
+    private static final String UNSTUCK_SENSOR = " UNSTUCK " + Sensor.STRING_TYPE_PROXIMITY;
+
+
     boolean running = false;
+
     AsyncTask asyncTask;
     private SensorManager mSensorManager;
     private Sensor mSensor;
@@ -62,7 +65,7 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
         };
 
 
-        mListenThread = new Thread(this, "Main Thread");
+        mListenThread = new Thread(this, TAG);
 
         mButton = (Button) findViewById(R.id.serviceButton);
 
@@ -75,13 +78,10 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
                     mButton.setText((mContext.getResources().getString(R.string.service_start)));
 
 
-
                 } else {
                     mSensorManager.registerListener(mSensorEventListener, mSensor, SensorManager.SENSOR_DELAY_FASTEST);
                     setProximityStatus((mContext.getResources().getString(R.string.proximity_waiting_data)));
                     mButton.setText((mContext.getResources().getString(R.string.service_stop)));
-
-
 
 
                 }
@@ -133,13 +133,11 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
     }
 
 
-
     @Override
     protected void onStart() {
 
         super.onStart();
     }
-
 
 
     @Override
@@ -148,9 +146,6 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
         super.onResume();
 
     }
-
-
-
 
 
     @Override
@@ -168,15 +163,17 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
 
 
         mValue = event.values[0];
-        Log.i(TAG, Reference.class.getEnclosingMethod().getName().toString() + " " + mValue);
+        Log.i(TAG, Reference.class.getEnclosingMethod().getName().toString() + STRING_SPACE + mValue);
 
         mCurrentValue = mValue == 0.0 ? NEAR : mValue > 0 ? FAR : UNKNOWN;
         setProximityStatus(mCurrentValue);
-        Log.i(TAG, Reference.class.getEnclosingMethod().getName().toString() + " " + mCurrentValue);
+        Log.i(TAG, Reference.class.getEnclosingMethod().getName().toString() + STRING_SPACE + mCurrentValue);
 
 
         if (mCurrentValue.equals(NEAR)) {
+
             run();
+
         }
 
     }
@@ -214,7 +211,7 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
 
         @Override
         protected void onPreExecute() {
-           mSensorManager.flush(mSensorEventListener);
+            mSensorManager.flush(mSensorEventListener);
 
 
         }
@@ -230,10 +227,11 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
                 }
             }
 
+
         }
 
         protected Boolean doInBackground(AppCompatActivity... activities) {
-
+            class Point {};
             try {
 
                 new Thread(new Runnable() {
@@ -248,10 +246,9 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
 
                         ///////////////////////////////////////////////////////
                         mSensorManager.unregisterListener(mSensorEventListener, mSensor);
-                        Log.i(TAG, " UNSTUCK PROXIMITY SENSOR");
+                        Log.i(TAG, Point.class.getEnclosingMethod().getName().toString() + UNSTUCK_SENSOR);
                         mSensorManager.registerListener(mSensorEventListener, mSensor, SensorManager.SENSOR_DELAY_FASTEST);
                         ///////////////////////////////////////////////////////
-
 
 
                         uiHandler.post(new Runnable() {
