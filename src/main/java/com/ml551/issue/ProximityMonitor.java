@@ -16,25 +16,27 @@ import android.widget.Button;
 import android.widget.TextView;
 
 
+
+
 public class ProximityMonitor extends AppCompatActivity implements SensorEventListener, Runnable {
 
     private static final String TAG = ProximityMonitor.class.getSimpleName();
-    private static final long RETRY_INTERVAL_MILLIS = 500L;
+    private static final long RETRY_INTERVAL_MILLIS = 2500L;
     private static final String NEAR = "NEAR";
     private static final String FAR = "FAR";
     private static final String UNKNOWN = "UNKNOWN";
     boolean running = false;
     AsyncTask asyncTask;
-    boolean hasRun = false;
     private SensorManager mSensorManager;
     private Sensor mSensor;
     private SensorEventListener mSensorEventListener;
-    private ThreadFlushMethod mFlushMethod;
+    private SensorUnstuckMethod mSensorUnstuckMethod;
     private Context mContext;
     private float mValue;
     private String mCurrentValue;
     private TextView mProximityStatus;
     private Button mButton;
+    private Thread mListenThread;
     private Handler uiHandler = new Handler();
 
     @Override
@@ -50,17 +52,17 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
         mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
 
 
-        mFlushMethod = new ThreadFlushMethod() {
+        mSensorUnstuckMethod = new SensorUnstuckMethod() {
             @Override
-            public void flush(final long n) throws InterruptedException {
-
+            public void unstuck() throws InterruptedException {
 
                 asyncTask = new threadTask().execute();
-
 
             }
         };
 
+
+        mListenThread = new Thread(this, "Main Thread");
 
         mButton = (Button) findViewById(R.id.serviceButton);
 
@@ -72,17 +74,22 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
                     setProximityStatus((mContext.getResources().getString(R.string.proximity_not_running)));
                     mButton.setText((mContext.getResources().getString(R.string.service_start)));
 
+
+
                 } else {
                     mSensorManager.registerListener(mSensorEventListener, mSensor, SensorManager.SENSOR_DELAY_FASTEST);
                     setProximityStatus((mContext.getResources().getString(R.string.proximity_waiting_data)));
                     mButton.setText((mContext.getResources().getString(R.string.service_stop)));
+
+
+
 
                 }
                 running = !running;
             }
         });
 
-
+        mListenThread.start();
     }
 
     @Override
@@ -94,6 +101,12 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
     public void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
 
+    }
+
+    @Override
+    public void onDestroy() {
+
+        super.onDestroy();
     }
 
     @Override
@@ -110,7 +123,7 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
 
     @Override
     protected void onStop() {
-        
+
         if (running) {
             mSensorManager.unregisterListener(mSensorEventListener);
             running = false;
@@ -118,6 +131,26 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
         super.onStop();
         uiHandler.removeCallbacksAndMessages(null);
     }
+
+
+
+    @Override
+    protected void onStart() {
+
+        super.onStart();
+    }
+
+
+
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+
+    }
+
+
+
 
 
     @Override
@@ -151,27 +184,27 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
 
     @Override
     public void run() {
-        if (mFlushMethod != null) {
+        if (mSensorUnstuckMethod != null) {
             if (running) {
 
-                flush(RETRY_INTERVAL_MILLIS);
+                unstuck();
 
             }
         }
     }
 
 
-    private void flush(final long n) {
+    private void unstuck() {
         try {
-            mFlushMethod.flush(n);
+            mSensorUnstuckMethod.unstuck();
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
     }
 
 
-    interface ThreadFlushMethod {
-        void flush(long paramLong)
+    interface SensorUnstuckMethod {
+        void unstuck()
                 throws InterruptedException;
     }
 
@@ -181,37 +214,48 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
 
         @Override
         protected void onPreExecute() {
-            mSensorManager.flush(mSensorEventListener);
+           mSensorManager.flush(mSensorEventListener);
 
-            hasRun = true;
+
         }
 
         @Override
-        protected void onPostExecute(Boolean bolean) {
+        protected void onPostExecute(Boolean bool) {
 
-
-            hasRun = false;
-
+            if (Thread.currentThread() != mListenThread) {
+                try {
+                    mListenThread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
 
         }
 
         protected Boolean doInBackground(AppCompatActivity... activities) {
-
 
             try {
 
                 new Thread(new Runnable() {
                     public void run() {
 
+                        try {
+                            Thread.sleep(RETRY_INTERVAL_MILLIS);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+
+
+                        ///////////////////////////////////////////////////////
+                        mSensorManager.unregisterListener(mSensorEventListener, mSensor);
+                        Log.i(TAG, " UNSTUCK PROXIMITY SENSOR");
+                        mSensorManager.registerListener(mSensorEventListener, mSensor, SensorManager.SENSOR_DELAY_FASTEST);
+                        ///////////////////////////////////////////////////////
+
+
 
                         uiHandler.post(new Runnable() {
                             public void run() {
-
-                                ///////////////////////////////////////////////////////
-                                mSensorManager.unregisterListener(mSensorEventListener);
-                                Log.i(TAG, " UNSTUCK PROXIMITY SENSOR");
-                                mSensorManager.registerListener(mSensorEventListener, mSensor, SensorManager.SENSOR_DELAY_FASTEST);
-                                ///////////////////////////////////////////////////////
 
 
                             }
@@ -222,7 +266,7 @@ public class ProximityMonitor extends AppCompatActivity implements SensorEventLi
             }
 
 
-            return hasRun;
+            return true;
         }
 
 
