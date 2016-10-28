@@ -3,7 +3,7 @@ ProximitySensor TEST for ML551
 
 ---
 
-Some devices are having issue with the proximity sensor, this application demonstrate where the sensor listener is getting stuck ( perhaps duo the defaulted initial value within the sensor) .
+Some devices are having issue with the proximity sensor, this application demonstrate where the sensor listener is getting stuck .
 
 ---
 
